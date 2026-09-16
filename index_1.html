@@ -1,0 +1,1027 @@
+<title>재료비 정산대장</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700&family=Noto+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root{
+    --bg:#f5f3ee;
+    --surface:#ffffff;
+    --surface-2:#ece7db;
+    --ink:#20261f;
+    --ink-soft:#5f6b60;
+    --border:#dcd5c3;
+    --accent:#2f6f5e;
+    --accent-dark:#1f4c40;
+    --accent-soft:#d9ece5;
+    --good:#2f7d4f;
+    --good-soft:#dcefe0;
+    --warn:#a9691a;
+    --warn-soft:#f4e6d2;
+    --bad:#ad3222;
+    --bad-soft:#f6e0da;
+    --zoneA:#eef5f2; --zoneA-strong:#d9ece5; --zoneA-ink:#1f4c40;
+    --zoneB:#eef1f8; --zoneB-strong:#dbe3f2; --zoneB-ink:#31497a;
+    --zoneC:#faf3e6; --zoneC-strong:#f0e0c4; --zoneC-ink:#8a5a14;
+    --shadow: 0 1px 2px rgba(32,38,31,0.06), 0 4px 14px rgba(32,38,31,0.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#12150f;
+      --surface:#191d16;
+      --surface-2:#20251c;
+      --ink:#e8e6da;
+      --ink-soft:#9aa392;
+      --border:#2b3126;
+      --accent:#57b79c;
+      --accent-dark:#7ecdb5;
+      --accent-soft:#1f342d;
+      --good:#5fbb7f;
+      --good-soft:#1c3324;
+      --warn:#e0a53d;
+      --warn-soft:#3a2c14;
+      --bad:#e2604a;
+      --bad-soft:#3a211c;
+      --zoneA:#16221c; --zoneA-strong:#1d3229; --zoneA-ink:#7ecdb5;
+      --zoneB:#141b26; --zoneB-strong:#1c2740; --zoneB-ink:#8fa8de;
+      --zoneC:#241d12; --zoneC-strong:#33270f; --zoneC-ink:#e0b567;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 14px rgba(0,0,0,0.25);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#12150f;
+    --surface:#191d16;
+    --surface-2:#20251c;
+    --ink:#e8e6da;
+    --ink-soft:#9aa392;
+    --border:#2b3126;
+    --accent:#57b79c;
+    --accent-dark:#7ecdb5;
+    --accent-soft:#1f342d;
+    --good:#5fbb7f;
+    --good-soft:#1c3324;
+    --warn:#e0a53d;
+    --warn-soft:#3a2c14;
+    --bad:#e2604a;
+    --bad-soft:#3a211c;
+    --zoneA:#16221c; --zoneA-strong:#1d3229; --zoneA-ink:#7ecdb5;
+    --zoneB:#141b26; --zoneB-strong:#1c2740; --zoneB-ink:#8fa8de;
+    --zoneC:#241d12; --zoneC-strong:#33270f; --zoneC-ink:#e0b567;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 14px rgba(0,0,0,0.25);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    padding-inline:16px;
+    padding-block:0 24px;
+  }
+  h1,h2,h3{font-family:'Noto Serif KR', serif; margin:0; text-wrap:balance;}
+  .mono{font-family:'IBM Plex Mono','Noto Sans KR',monospace; font-variant-numeric:tabular-nums;}
+  button{font-family:inherit; cursor:pointer;}
+  input,select,textarea{font-family:inherit; color:var(--ink); background:transparent;}
+
+  .appbar{
+    position:sticky; top:env(safe-area-inset-top,0px);
+    z-index:20;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding-block:14px;
+    background:var(--bg);
+    border-bottom:1px solid var(--border);
+    flex-wrap:wrap;
+  }
+  .appbar .title{display:flex; align-items:baseline; gap:8px;}
+  .appbar h1{font-size:1.15rem; color:var(--accent-dark);}
+  .appbar .subtitle{font-size:0.78rem; color:var(--ink-soft);}
+  .sync{
+    display:flex; align-items:center; gap:6px;
+    font-size:0.75rem; color:var(--ink-soft);
+    padding:5px 10px; border-radius:999px; background:var(--surface-2);
+    white-space:nowrap;
+  }
+  .sync .dot{width:7px; height:7px; border-radius:50%; background:var(--good); transition:background .2s;}
+  .sync.saving .dot{background:var(--warn);}
+  .sync.error .dot{background:var(--bad);}
+
+  .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:18px; padding-top:16px;}
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:16px 18px;
+    box-shadow:var(--shadow);
+  }
+
+  .filter-bar{display:flex; flex-direction:column; gap:8px; border-color:var(--accent); border-width:1.5px;}
+  .filter-bar-row{display:flex; gap:12px; flex-wrap:wrap;}
+  .filter-bar-row .field{flex:1 1 200px; min-width:160px;}
+  .filter-bar select{
+    border:1px solid var(--border); border-radius:8px; padding:9px 10px; font-size:0.92rem;
+    background:var(--surface); width:100%; font-weight:600;
+  }
+  .filter-bar select:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  .filter-bar .hint{font-size:0.76rem; color:var(--ink-soft);}
+
+  .project-card{display:flex; flex-direction:column; gap:12px;}
+  .project-grid{display:grid; grid-template-columns:2fr 1fr; gap:12px;}
+  @media (max-width:560px){.project-grid{grid-template-columns:1fr;}}
+  .field{display:flex; flex-direction:column; gap:4px;}
+  .field label{font-size:0.72rem; color:var(--ink-soft); letter-spacing:0.02em;}
+  .field input[type=text], .field select, .field textarea{
+    border:1px solid var(--border); border-radius:8px; padding:9px 10px; font-size:0.92rem;
+    background:var(--surface); width:100%;
+  }
+  .field textarea{resize:vertical; min-height:38px;}
+  .field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--accent); outline-offset:1px;}
+
+  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:12px;}
+  @media (max-width:760px){.kpis{grid-template-columns:repeat(2,1fr);}}
+  .kpi{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:14px 16px; box-shadow:var(--shadow);
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .kpi .label{font-size:0.74rem; color:var(--ink-soft); font-weight:500;}
+  .kpi .value{font-size:1.28rem; font-weight:600;}
+  .kpi .value.good{color:var(--good);}
+  .kpi .value.warn{color:var(--warn);}
+  .kpi .value.bad{color:var(--bad);}
+  .kpi .sub{font-size:0.72rem; color:var(--ink-soft);}
+
+  .toolbar{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+  .toolbar .hint{font-size:0.78rem; color:var(--ink-soft); max-width:60ch;}
+  .btn{
+    border-radius:9px; padding:8px 14px; font-size:0.84rem; font-weight:600;
+    border:1px solid var(--border); background:var(--surface); color:var(--ink);
+  }
+  .btn:hover{border-color:var(--accent);}
+  .btn.primary{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .btn.primary:hover{background:var(--accent-dark); border-color:var(--accent-dark);}
+  .btn.small{padding:5px 10px; font-size:0.76rem; border-radius:7px;}
+
+  .legend{display:flex; gap:14px; flex-wrap:wrap; font-size:0.74rem; color:var(--ink-soft);}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .legend i{width:10px; height:10px; border-radius:3px; display:inline-block;}
+  .legend .a{background:var(--zoneA-strong);}
+  .legend .b{background:var(--zoneB-strong);}
+  .legend .c{background:var(--zoneC-strong);}
+
+  .table-scroll{overflow-x:auto; border:1px solid var(--border); border-radius:12px; background:var(--surface); box-shadow:var(--shadow);}
+  table{border-collapse:collapse; width:100%; min-width:1720px;}
+  thead th{
+    position:sticky; top:0; background:var(--surface-2); color:var(--ink-soft);
+    font-size:0.72rem; font-weight:600; text-align:left; padding:8px 9px;
+    border-bottom:1px solid var(--border); white-space:nowrap;
+  }
+  thead tr.group-row th{
+    font-size:0.76rem; font-weight:700; text-align:center; padding:7px 6px;
+    border-bottom:1px solid var(--border);
+  }
+  thead tr.group-row th.a{background:var(--zoneA-strong); color:var(--zoneA-ink);}
+  thead tr.group-row th.b{background:var(--zoneB-strong); color:var(--zoneB-ink);}
+  thead tr.group-row th.c{background:var(--zoneC-strong); color:var(--zoneC-ink);}
+  tbody td{padding:5px 7px; border-bottom:1px solid var(--border); vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:var(--surface-2);}
+  td.zone-a{background:color-mix(in srgb, var(--zoneA) 55%, transparent);}
+  td.zone-b{background:color-mix(in srgb, var(--zoneB) 55%, transparent);}
+  td.zone-c{background:color-mix(in srgb, var(--zoneC) 55%, transparent);}
+  tfoot td{
+    padding:10px 7px; font-weight:700; border-top:2px solid var(--border);
+    background:var(--surface-2);
+  }
+  td input, td select{
+    border:1px solid transparent; border-radius:6px; padding:6px 7px; font-size:0.84rem;
+    width:100%; min-width:64px; background:transparent;
+  }
+  td input:hover, td select:hover{border-color:var(--border);}
+  td input:focus, td select:focus{border-color:var(--accent); outline:none; background:var(--surface);}
+  td.computed{font-weight:600; white-space:nowrap; padding:5px 10px;}
+  td.computed.good{color:var(--good);}
+  td.computed.warn{color:var(--warn);}
+  td.computed.bad{color:var(--bad);}
+  td.computed.muted{color:var(--ink-soft); font-weight:500;}
+  td.num{text-align:right;}
+  td.num input{text-align:right;}
+  td.del-cell{width:1%; text-align:center;}
+  .del-btn{
+    background:transparent; border:none; color:var(--ink-soft); font-size:1rem; line-height:1;
+    padding:6px; border-radius:6px;
+  }
+  .del-btn:hover{color:var(--bad); background:var(--bad-soft);}
+  .empty-row td{padding:22px 10px; text-align:center; color:var(--ink-soft); font-size:0.85rem;}
+
+  .note-strip{font-size:0.74rem; color:var(--ink-soft); line-height:1.6;}
+  .banner{
+    display:none; align-items:center; gap:8px; background:var(--warn-soft); color:var(--warn);
+    border:1px solid var(--warn); border-radius:10px; padding:9px 14px; font-size:0.8rem; font-weight:600;
+  }
+  .banner.show{display:flex;}
+
+  ::selection{background:var(--accent-soft); color:var(--accent-dark);}
+</style>
+
+<div class="appbar">
+  <div class="title">
+    <h1>🧾 재료비 정산대장</h1>
+    <span class="subtitle">교육청 청구·업체정산·기타정산 통합 관리</span>
+  </div>
+  <div class="sync" id="syncStatus"><span class="dot"></span><span id="syncText">연결 중…</span></div>
+</div>
+
+<datalist id="officeSuggestions">
+  <option value="동두천양주">
+  <option value="성남">
+  <option value="화성">
+  <option value="구리남양주">
+  <option value="용인">
+</datalist>
+
+<div class="wrap">
+
+  <div class="banner" id="offlineBanner">⚠ 저장소에 연결하지 못해 예시 데이터로만 표시됩니다. 입력 내용은 새로고침 시 사라질 수 있습니다.</div>
+
+  <section class="card filter-bar">
+    <div class="filter-bar-row">
+      <div class="field">
+        <label for="officeFilter">교육청으로 보기</label>
+        <select id="officeFilter"><option value="전체">전체 교육청</option></select>
+      </div>
+      <div class="field">
+        <label for="schoolFilter">학교로 보기</label>
+        <select id="schoolFilter"><option value="전체">전체 학교</option></select>
+      </div>
+    </div>
+    <span class="hint" id="filterHint">전체 항목을 표시하고 있습니다.</span>
+  </section>
+
+  <section class="card project-card">
+    <div class="project-grid">
+      <div class="field">
+        <label for="projName">사업명</label>
+        <input type="text" id="projName" placeholder="예: 2026년 하반기 방과후 재료비 정산">
+      </div>
+      <div class="field">
+        <label for="projType">구분</label>
+        <select id="projType">
+          <option value="교육청">교육청 사업</option>
+          <option value="학교">학교 사업</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="projNote">비고</label>
+      <textarea id="projNote" rows="1" placeholder="사업 관련 메모"></textarea>
+    </div>
+  </section>
+
+  <section class="kpis">
+    <div class="kpi">
+      <span class="label">교육청 총 청구액</span>
+      <span class="value mono" id="kpiBillingTotal">0원</span>
+      <span class="sub">단가×인원 합계</span>
+    </div>
+    <div class="kpi">
+      <span class="label">업체정산 총 이익</span>
+      <span class="value mono" id="kpiVendorProfit">0원</span>
+      <span class="sub" id="kpiVendorProfitSub">공급가 합계 0원</span>
+    </div>
+    <div class="kpi">
+      <span class="label">기타정산 총액</span>
+      <span class="value mono" id="kpiOtherTotal">0원</span>
+      <span class="sub">개인강사 등 직접 지급분</span>
+    </div>
+    <div class="kpi">
+      <span class="label">정산 미확정</span>
+      <span class="value mono warn" id="kpiUnresolved">0건</span>
+      <span class="sub">업체·기타정산 모두 비어있는 항목</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="toolbar">
+      <span class="hint">과목별로 교육청 청구액, 실제 업체 공급가, 기타(개인강사 등) 지급액을 한 줄에서 관리합니다. 합계·이익은 자동 계산됩니다.</span>
+      <div style="display:flex; gap:8px;">
+        <button class="btn small" id="exportXlsx">엑셀 다운로드</button>
+        <button class="btn small" id="exportRows">CSV 내보내기</button>
+        <button class="btn primary small" id="addRowBtn">+ 항목 추가</button>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div class="legend">
+        <span><i class="a"></i>교육청받는금액</span>
+        <span><i class="b"></i>업체정산금액</span>
+        <span><i class="c"></i>기타정산</span>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr class="group-row">
+            <th class="a" colspan="7">교육청받는금액</th>
+            <th class="b" colspan="5">업체정산금액</th>
+            <th class="c" colspan="5">기타정산</th>
+            <th colspan="2"></th>
+          </tr>
+          <tr id="colHeaderRow"></tr>
+        </thead>
+        <tbody id="rowsBody"></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="6" id="footLabel">합계</td>
+            <td class="mono" id="footBillingTotal">0원</td>
+            <td colspan="4"></td>
+            <td class="mono" id="footVendorProfit">0원</td>
+            <td colspan="4"></td>
+            <td class="mono" id="footOtherProfit">0원</td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+
+  <p class="note-strip">데이터는 자동 저장되며, 이 링크를 다시 열면 이어서 확인할 수 있습니다.</p>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  // ---------- utilities ----------
+  function uid(){
+    if (crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,9);
+  }
+  function parseNum(v){
+    if (typeof v === 'number') return isFinite(v) ? v : 0;
+    if (!v) return 0;
+    var n = Number(String(v).replace(/[^0-9.\-]/g,''));
+    return isFinite(n) ? n : 0;
+  }
+  function won(n){
+    return Math.round(parseNum(n)).toLocaleString('ko-KR') + '원';
+  }
+  function signedWon(n){
+    var v = Math.round(parseNum(n));
+    var s = Math.abs(v).toLocaleString('ko-KR') + '원';
+    return v < 0 ? '−' + s : s;
+  }
+  function isFocused(el){ return el && document.activeElement === el; }
+  function debounceMap(){
+    var timers = {};
+    return function(key, fn, ms){
+      clearTimeout(timers[key]);
+      timers[key] = setTimeout(fn, ms);
+    };
+  }
+  var debounce = debounceMap();
+
+  function setSync(state, text){
+    var el = document.getElementById('syncStatus');
+    var txt = document.getElementById('syncText');
+    el.classList.remove('saving','error');
+    if (state === 'saving') el.classList.add('saving');
+    if (state === 'error') el.classList.add('error');
+    txt.textContent = text;
+  }
+
+  var TABLE = 'rows';
+
+  // ---------- example seed data (migrated from the uploaded 정산.xlsx) ----------
+  var EXAMPLE = {
+    project: { name: '용인 왕산초 방과후 재료비 정산', type: '학교', note: '' },
+    rows: [
+      { office:'용인', school:'왕산초', subject:'피치컬 AI코딩 (월)', billVendor:'참다솜', unitPrice:20000, headcount:28,
+        vendorName:'', vendorSupply:0, vendorHeadcount:0,
+        otherName:'개인강사', otherSupply:50000, otherHeadcount:1, order:1 },
+      { office:'용인', school:'왕산초', subject:'리듬체조 (화)', billVendor:'한우리', unitPrice:20000, headcount:27,
+        vendorName:'', vendorSupply:0, vendorHeadcount:0,
+        otherName:'', otherSupply:0, otherHeadcount:0, order:2 },
+      { office:'용인', school:'왕산초', subject:'다문화랭귀지스쿨 (수)', billVendor:'', unitPrice:20000, headcount:7,
+        vendorName:'', vendorSupply:0, vendorHeadcount:0,
+        otherName:'', otherSupply:0, otherHeadcount:0, order:3 },
+      { office:'용인', school:'왕산초', subject:'K 푸드 전통요리 (목)', billVendor:'브레인쿡', unitPrice:28000, headcount:30,
+        vendorName:'', vendorSupply:20000, vendorHeadcount:30,
+        otherName:'', otherSupply:0, otherHeadcount:0, order:4 },
+      { office:'용인', school:'왕산초', subject:'K 아트 전통공예 (금)', billVendor:'레고진진', unitPrice:22000, headcount:14,
+        vendorName:'', vendorSupply:0, vendorHeadcount:0,
+        otherName:'', otherSupply:0, otherHeadcount:0, order:5 }
+    ]
+  };
+
+  // ---------- column config (single unified ledger row) ----------
+  function billTotalOf(r){ return parseNum(r.unitPrice) * parseNum(r.headcount); }
+  function vendorEmpty(r){ return !r.vendorName && !parseNum(r.vendorSupply) && !parseNum(r.vendorHeadcount); }
+  function otherEmpty(r){ return !r.otherName && !parseNum(r.otherSupply) && !parseNum(r.otherHeadcount); }
+
+  var COLS = [
+    { key:'office', label:'교육청', type:'text-suggest', group:'a', ph:'교육청' },
+    { key:'school', label:'학교', type:'text', group:'a', ph:'학교명' },
+    { key:'subject', label:'과목', type:'text', group:'a', ph:'과목/프로그램' },
+    { key:'billVendor', label:'청구견적서', type:'text', group:'a', ph:'견적 업체명' },
+    { key:'unitPrice', label:'단가(원)', type:'num', group:'a', ph:'0' },
+    { key:'headcount', label:'인원', type:'num', group:'a', ph:'0' },
+    { key:'total', label:'합계(원)', type:'computed', group:'a', calc:billTotalOf },
+
+    { key:'vendorName', label:'업체', type:'text', group:'b', ph:'업체명' },
+    { key:'vendorSupply', label:'공급가(원)', type:'num', group:'b', ph:'0' },
+    { key:'vendorHeadcount', label:'인원', type:'num', group:'b', ph:'0' },
+    { key:'vendorTotal', label:'합계(원)', type:'computed', group:'b', emptyWhen:vendorEmpty,
+      calc:function(r){ return parseNum(r.vendorSupply) * parseNum(r.vendorHeadcount); } },
+    { key:'vendorProfit', label:'이익(원)', type:'computed', group:'b', emptyWhen:vendorEmpty,
+      calc:function(r){ return billTotalOf(r) - parseNum(r.vendorSupply) * parseNum(r.vendorHeadcount); },
+      cls:function(r,v){ return v > 0 ? 'good' : (v < 0 ? 'bad' : ''); } },
+
+    { key:'otherName', label:'업체', type:'text', group:'c', ph:'개인강사 등' },
+    { key:'otherSupply', label:'공급가(원)', type:'num', group:'c', ph:'0' },
+    { key:'otherHeadcount', label:'인원', type:'num', group:'c', ph:'0' },
+    { key:'otherTotal', label:'합계(원)', type:'computed', group:'c', emptyWhen:otherEmpty,
+      calc:function(r){ return parseNum(r.otherSupply) * parseNum(r.otherHeadcount); } },
+    { key:'otherProfit', label:'이익(원)', type:'computed', group:'c', emptyWhen:otherEmpty,
+      calc:function(r){ return billTotalOf(r) - parseNum(r.otherSupply) * parseNum(r.otherHeadcount); },
+      cls:function(r,v){ return v > 0 ? 'good' : (v < 0 ? 'bad' : ''); } },
+
+    { key:'note', label:'비고', type:'text', group:null, ph:'' }
+  ];
+
+  // build the detail header row once from COLS
+  (function buildHeader(){
+    var tr = document.getElementById('colHeaderRow');
+    COLS.forEach(function(col){
+      var th = document.createElement('th');
+      th.textContent = col.label;
+      tr.appendChild(th);
+    });
+    tr.appendChild(document.createElement('th'));
+  })();
+
+  // ---------- state ----------
+  var state = { project: {}, rows: [] };
+  var rowEls = { rows:{} };
+  var dbHandle = null;
+  var local = { rows: [] };
+  var officeFilter = '전체';
+  var schoolFilter = '전체';
+
+  // ---------- generic row rendering ----------
+  function fieldElId(id, key){ return TABLE+'-'+id+'-'+key; }
+
+  function buildRowTr(id, data){
+    var tr = document.createElement('tr');
+    tr.dataset.id = id;
+    COLS.forEach(function(col){
+      var td = document.createElement('td');
+      if (col.group) td.classList.add('zone-'+col.group);
+      if (col.type === 'computed'){
+        td.className += ' computed num';
+        td.dataset.key = col.key;
+      } else if (col.type === 'text'){
+        td.innerHTML = '<input type="text" id="'+fieldElId(id,col.key)+'" placeholder="'+(col.ph||'')+'">';
+      } else if (col.type === 'text-suggest'){
+        td.innerHTML = '<input type="text" id="'+fieldElId(id,col.key)+'" list="officeSuggestions" autocomplete="off" placeholder="'+(col.ph||'')+'">';
+      } else if (col.type === 'num'){
+        td.classList.add('num');
+        td.innerHTML = '<input type="text" inputmode="numeric" id="'+fieldElId(id,col.key)+'" placeholder="'+(col.ph||'0')+'">';
+      }
+      tr.appendChild(td);
+    });
+    var delTd = document.createElement('td');
+    delTd.className = 'del-cell';
+    delTd.innerHTML = '<button class="del-btn" title="삭제" aria-label="행 삭제">✕</button>';
+    delTd.querySelector('button').addEventListener('click', function(){ removeRow(id); });
+    tr.appendChild(delTd);
+
+    COLS.forEach(function(col){
+      if (col.type === 'computed') return;
+      var input = tr.querySelector('#'+CSS.escape(fieldElId(id,col.key)));
+      if (!input) return;
+      if (col.type === 'num'){
+        input.addEventListener('focus', function(){ input.value = String(parseNum(input.value)); });
+        input.addEventListener('blur', function(){
+          input.value = parseNum(input.value).toLocaleString('ko-KR');
+          flushSave(id, col.key, parseNum(input.value));
+          recomputeRow(id);
+        });
+      } else {
+        input.addEventListener('blur', function(){ flushSave(id, col.key, input.value); });
+      }
+      input.addEventListener('input', function(){
+        recomputeRow(id);
+        debounce(id+'-'+col.key, function(){
+          var val = col.type === 'num' ? parseNum(input.value) : input.value;
+          flushSave(id, col.key, val);
+        }, 700);
+      });
+    });
+
+    return tr;
+  }
+
+  function setRowValues(id, data){
+    COLS.forEach(function(col){
+      if (col.type === 'computed') return;
+      var input = document.getElementById(fieldElId(id,col.key));
+      if (!input) return;
+      if (isFocused(input)) return;
+      var v = data[col.key];
+      if (col.type === 'num'){
+        input.value = parseNum(v) === 0 ? '' : parseNum(v).toLocaleString('ko-KR');
+      } else {
+        input.value = v || '';
+      }
+    });
+    recomputeRow(id);
+  }
+
+  function readRowValues(id){
+    var out = { id: id };
+    COLS.forEach(function(col){
+      if (col.type === 'computed') return;
+      var input = document.getElementById(fieldElId(id,col.key));
+      out[col.key] = input ? input.value : '';
+    });
+    return out;
+  }
+
+  function recomputeRow(id){
+    var tr = rowEls.rows[id];
+    if (!tr) return;
+    var r = readRowValues(id);
+    COLS.forEach(function(col){
+      if (col.type !== 'computed') return;
+      var td = tr.querySelector('td[data-key="'+col.key+'"]');
+      if (!td) return;
+      td.classList.remove('good','warn','bad','muted');
+      if (col.emptyWhen && col.emptyWhen(r)){
+        td.textContent = '—';
+        td.classList.add('muted');
+        return;
+      }
+      var v = col.calc(r);
+      td.textContent = signedWon(v);
+      if (col.cls) {
+        var c = col.cls(r, v);
+        if (c) td.classList.add(c);
+      }
+    });
+    recomputeTotalsAndKpis();
+  }
+
+  function getAllRowValues(){
+    return state.rows.map(function(d){ return readRowValues(d.id); });
+  }
+
+  // ---------- add/remove DOM ----------
+  function addRowToDom(id, data){
+    var body = document.getElementById('rowsBody');
+    var empty = body.querySelector('.empty-row');
+    if (empty) empty.remove();
+    var tr = buildRowTr(id, data);
+    body.appendChild(tr);
+    rowEls.rows[id] = tr;
+    setRowValues(id, data);
+    updateCount();
+  }
+  function removeRowFromDom(id){
+    var tr = rowEls.rows[id];
+    if (tr) tr.remove();
+    delete rowEls.rows[id];
+    updateCount();
+    maybeShowEmpty();
+    recomputeTotalsAndKpis();
+  }
+  function maybeShowEmpty(){
+    var body = document.getElementById('rowsBody');
+    if (body.children.length === 0){
+      var tr = document.createElement('tr');
+      tr.className = 'empty-row';
+      tr.innerHTML = '<td colspan="'+(COLS.length+1)+'">아직 등록된 항목이 없습니다. 위의 추가 버튼을 눌러 입력을 시작하세요.</td>';
+      body.appendChild(tr);
+    }
+  }
+  function updateCount(){ /* reserved for future use */ }
+
+  // ---------- totals / KPIs ----------
+  function recomputeTotalsAndKpis(){
+    var rows = getAllRowValues();
+
+    var billingTotal = rows.reduce(function(s,r){ return s + billTotalOf(r); }, 0);
+    document.getElementById('kpiBillingTotal').textContent = won(billingTotal);
+
+    var vendorRows = rows.filter(function(r){ return !vendorEmpty(r); });
+    var vendorSupplyTotal = vendorRows.reduce(function(s,r){ return s + parseNum(r.vendorSupply)*parseNum(r.vendorHeadcount); }, 0);
+    var vendorProfitTotal = vendorRows.reduce(function(s,r){ return s + (billTotalOf(r) - parseNum(r.vendorSupply)*parseNum(r.vendorHeadcount)); }, 0);
+    var kpiVP = document.getElementById('kpiVendorProfit');
+    kpiVP.textContent = signedWon(vendorProfitTotal);
+    kpiVP.classList.toggle('bad', vendorProfitTotal < 0);
+    kpiVP.classList.toggle('good', vendorProfitTotal > 0);
+    document.getElementById('kpiVendorProfitSub').textContent = '공급가 합계 ' + won(vendorSupplyTotal);
+
+    var otherRows = rows.filter(function(r){ return !otherEmpty(r); });
+    var otherTotalSum = otherRows.reduce(function(s,r){ return s + parseNum(r.otherSupply)*parseNum(r.otherHeadcount); }, 0);
+    var otherProfitTotal = otherRows.reduce(function(s,r){ return s + (billTotalOf(r) - parseNum(r.otherSupply)*parseNum(r.otherHeadcount)); }, 0);
+    document.getElementById('kpiOtherTotal').textContent = won(otherTotalSum);
+
+    var unresolved = rows.filter(function(r){ return vendorEmpty(r) && otherEmpty(r); }).length;
+    document.getElementById('kpiUnresolved').textContent = unresolved + '건';
+
+    document.getElementById('footBillingTotal').textContent = won(billingTotal);
+    document.getElementById('footVendorProfit').textContent = signedWon(vendorProfitTotal);
+    document.getElementById('footOtherProfit').textContent = signedWon(otherProfitTotal);
+
+    applyFilters();
+  }
+
+  // ---------- 교육청 / 학교 필터 (맨 위 필터바) ----------
+  function refreshFilterOptions(){
+    refreshOneFilter('officeFilter', 'office', ['동두천양주','성남','화성','구리남양주','용인']);
+    refreshOneFilter('schoolFilter', 'school', []);
+  }
+  function refreshOneFilter(selectId, fieldKey, preset){
+    var select = document.getElementById(selectId);
+    if (!select || isFocused(select)) return;
+    var current = select.value || '전체';
+    var fromRows = Object.keys(rowEls.rows).map(function(id){
+      var input = document.getElementById(fieldElId(id, fieldKey));
+      return input ? input.value.trim() : '';
+    }).filter(Boolean);
+    var uniq = [];
+    preset.concat(fromRows).forEach(function(v){ if (uniq.indexOf(v) === -1) uniq.push(v); });
+    uniq.sort(function(a,b){ return a.localeCompare(b,'ko'); });
+    var allLabel = selectId === 'officeFilter' ? '전체 교육청' : '전체 학교';
+    select.innerHTML = '<option value="전체">'+allLabel+'</option>' + uniq.map(function(v){
+      return '<option value="'+v+'">'+v+'</option>';
+    }).join('');
+    select.value = uniq.indexOf(current) !== -1 ? current : '전체';
+    if (selectId === 'officeFilter') officeFilter = select.value; else schoolFilter = select.value;
+  }
+
+  function applyFilters(){
+    refreshFilterOptions();
+    var body = document.getElementById('rowsBody');
+    if (!body) return;
+    var anyVisible = false;
+    Object.keys(rowEls.rows).forEach(function(id){
+      var tr = rowEls.rows[id];
+      var officeInput = document.getElementById(fieldElId(id,'office'));
+      var schoolInput = document.getElementById(fieldElId(id,'school'));
+      var office = officeInput ? officeInput.value.trim() : '';
+      var school = schoolInput ? schoolInput.value.trim() : '';
+      var match = (officeFilter === '전체' || office === officeFilter) && (schoolFilter === '전체' || school === schoolFilter);
+      tr.hidden = !match;
+      if (match) anyVisible = true;
+    });
+
+    var parts = [];
+    if (officeFilter !== '전체') parts.push(officeFilter);
+    if (schoolFilter !== '전체') parts.push(schoolFilter);
+    var filterHint = document.getElementById('filterHint');
+    if (filterHint) filterHint.textContent = parts.length ? (parts.join(' · ') + ' 항목만 표시하고 있습니다.') : '전체 항목을 표시하고 있습니다.';
+
+    var hasRows = Object.keys(rowEls.rows).length > 0;
+    var filteredEmpty = document.getElementById('rowsFilteredEmpty');
+    if (hasRows && !anyVisible){
+      if (!filteredEmpty){
+        filteredEmpty = document.createElement('tr');
+        filteredEmpty.id = 'rowsFilteredEmpty';
+        body.appendChild(filteredEmpty);
+      }
+      filteredEmpty.innerHTML = '<td colspan="'+(COLS.length+1)+'" style="padding:18px;text-align:center;color:var(--ink-soft);font-size:0.85rem;">선택한 조건(' + (parts.join(' · ') || '전체') + ')에 해당하는 항목이 없습니다.</td>';
+    } else if (filteredEmpty){
+      filteredEmpty.remove();
+    }
+    var footLabel = document.getElementById('footLabel');
+    if (footLabel) footLabel.textContent = parts.length ? '합계 (' + parts.join(' · ') + ')' : '합계';
+
+    var visible = Object.keys(rowEls.rows).filter(function(id){ return !rowEls.rows[id].hidden; }).map(readRowValues);
+    document.getElementById('footBillingTotal').textContent = won(visible.reduce(function(s,r){ return s + billTotalOf(r); },0));
+    document.getElementById('footVendorProfit').textContent = signedWon(visible.reduce(function(s,r){ return s + (vendorEmpty(r) ? 0 : billTotalOf(r) - parseNum(r.vendorSupply)*parseNum(r.vendorHeadcount)); },0));
+    document.getElementById('footOtherProfit').textContent = signedWon(visible.reduce(function(s,r){ return s + (otherEmpty(r) ? 0 : billTotalOf(r) - parseNum(r.otherSupply)*parseNum(r.otherHeadcount)); },0));
+  }
+
+  function wireFilters(){
+    document.getElementById('officeFilter').addEventListener('change', function(){
+      officeFilter = this.value;
+      applyFilters();
+    });
+    document.getElementById('schoolFilter').addEventListener('change', function(){
+      schoolFilter = this.value;
+      applyFilters();
+    });
+  }
+
+  // ---------- add / remove / save (backend-agnostic) ----------
+  // Standalone fallback storage (used only when window.claude / db is unavailable,
+  // e.g. this file downloaded and hosted elsewhere such as GitHub Pages).
+  var LS_KEY = 'materials_ledger_v1';
+  function saveLocalStorage(){
+    try{
+      localStorage.setItem(LS_KEY, JSON.stringify({ project: local.project, rows: local.rows }));
+    }catch(e){ /* private mode / storage blocked — degrade silently */ }
+  }
+  function loadLocalStorage(){
+    try{
+      var raw = localStorage.getItem(LS_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      return (parsed && Array.isArray(parsed.rows)) ? parsed : null;
+    }catch(e){ return null; }
+  }
+
+  function addRow(data){
+    data.order = Date.now();
+    if (dbHandle){
+      setSync('saving','저장 중…');
+      dbHandle.collection(TABLE).add(data).then(function(){
+        setSync('ok','저장됨');
+      }).catch(function(){ setSync('error','저장 오류'); });
+    } else {
+      var id = uid();
+      local.rows.push(Object.assign({id:id}, data));
+      state.rows.push({id:id});
+      addRowToDom(id, data);
+      saveLocalStorage();
+    }
+  }
+  function removeRow(id){
+    if (dbHandle){
+      setSync('saving','삭제 중…');
+      dbHandle.collection(TABLE).doc(id).delete().then(function(){
+        setSync('ok','저장됨');
+      }).catch(function(){ setSync('error','저장 오류'); });
+    } else {
+      local.rows = local.rows.filter(function(r){ return r.id !== id; });
+      state.rows = state.rows.filter(function(r){ return r.id !== id; });
+      removeRowFromDom(id);
+      saveLocalStorage();
+    }
+  }
+  function flushSave(id, key, value){
+    if (dbHandle){
+      setSync('saving','저장 중…');
+      var payload = {}; payload[key] = value;
+      dbHandle.collection(TABLE).doc(id).update(payload).then(function(){
+        setSync('ok','저장됨');
+      }).catch(function(){ setSync('error','저장 오류'); });
+    } else {
+      var row = local.rows.find(function(r){ return r.id === id; });
+      if (row) row[key] = value;
+      saveLocalStorage();
+    }
+  }
+  function saveProjectField(key, value){
+    if (dbHandle){
+      setSync('saving','저장 중…');
+      var payload = {}; payload[key] = value;
+      dbHandle.doc('project/info').update(payload).then(function(){
+        setSync('ok','저장됨');
+      }).catch(function(){ setSync('error','저장 오류'); });
+    } else {
+      local.project = local.project || {};
+      local.project[key] = value;
+      saveLocalStorage();
+    }
+  }
+
+  // ---------- project card wiring ----------
+  function wireProjectCard(){
+    var nameInput = document.getElementById('projName');
+    var typeSelect = document.getElementById('projType');
+    var noteInput = document.getElementById('projNote');
+    nameInput.addEventListener('input', function(){
+      debounce('proj-name', function(){ saveProjectField('name', nameInput.value); }, 600);
+    });
+    nameInput.addEventListener('blur', function(){ saveProjectField('name', nameInput.value); });
+    typeSelect.addEventListener('change', function(){ saveProjectField('type', typeSelect.value); });
+    noteInput.addEventListener('input', function(){
+      debounce('proj-note', function(){ saveProjectField('note', noteInput.value); }, 600);
+    });
+    noteInput.addEventListener('blur', function(){ saveProjectField('note', noteInput.value); });
+  }
+  function setProjectValues(data){
+    var nameInput = document.getElementById('projName');
+    var typeSelect = document.getElementById('projType');
+    var noteInput = document.getElementById('projNote');
+    if (!isFocused(nameInput)) nameInput.value = data.name || '';
+    if (!isFocused(typeSelect)) typeSelect.value = data.type || '학교';
+    if (!isFocused(noteInput)) noteInput.value = data.note || '';
+  }
+
+  // ---------- CSV export ----------
+  function toCsv(){
+    var headerRow = COLS.map(function(c){ return c.label; });
+    var rows = getAllRowValues().map(function(r){
+      return COLS.map(function(c){
+        if (c.type === 'computed') return String(Math.round(c.emptyWhen && c.emptyWhen(r) ? 0 : c.calc(r)));
+        if (c.type === 'num') return String(parseNum(r[c.key]));
+        return '"' + String(r[c.key] || '').replace(/"/g,'""') + '"';
+      });
+    });
+    return '﻿' + [headerRow.join(',')].concat(rows.map(function(r){ return r.join(','); })).join('\n');
+  }
+  function wireExports(){
+    document.getElementById('exportRows').addEventListener('click', function(){
+      var csv = toCsv();
+      var filename = (state.project.name || '재료비정산') + '.csv';
+      if (window.claude && window.claude.use){
+        window.claude.use('downloads').then(function(downloads){
+          if (!downloads){ fallbackDownload(csv, filename); return; }
+          downloads.save({ filename: filename, data: csv }).catch(function(){});
+        }).catch(function(){ fallbackDownload(csv, filename); });
+      } else {
+        fallbackDownload(csv, filename);
+      }
+    });
+  }
+  function fallbackDownload(csv, filename){
+    try{
+      var blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+    }catch(e){}
+  }
+  function fallbackBlobDownload(blob, filename){
+    try{
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+    }catch(e){}
+  }
+
+  // ---------- Excel (.xlsx) export — mirrors the 정산.xlsx layout ----------
+  function buildWorkbook(){
+    var groupHeader = ['교육청받는금액','','','','','','','업체정산금액','','','','','기타정산','','','','',''];
+    var detailHeader = COLS.map(function(c){ return c.label; });
+    var dataRows = getAllRowValues().map(function(r){
+      return COLS.map(function(c){
+        if (c.type === 'computed') return (c.emptyWhen && c.emptyWhen(r)) ? '' : Math.round(c.calc(r));
+        if (c.type === 'num') return parseNum(r[c.key]);
+        return r[c.key] || '';
+      });
+    });
+    var aoa = [groupHeader, detailHeader].concat(dataRows);
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!merges'] = [
+      { s:{r:0,c:0}, e:{r:0,c:6} },
+      { s:{r:0,c:7}, e:{r:0,c:11} },
+      { s:{r:0,c:12}, e:{r:0,c:16} }
+    ];
+    ws['!cols'] = COLS.map(function(c){
+      var isTextish = (c.type === 'text' || c.type === 'text-suggest');
+      return { wch: Math.max(c.label.length + 2, isTextish ? 14 : 10) };
+    });
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '정산내역');
+    return wb;
+  }
+  function wireXlsxExport(){
+    var btn = document.getElementById('exportXlsx');
+    if (!btn) return;
+    btn.addEventListener('click', function(){
+      var filename = (state.project.name || '재료비정산') + '.xlsx';
+      if (typeof XLSX === 'undefined'){
+        fallbackDownload(toCsv(), (state.project.name || '재료비정산') + '.csv');
+        return;
+      }
+      var wb = buildWorkbook();
+      var wbout = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+      var blob = new Blob([wbout], { type:'application/octet-stream' });
+      if (window.claude && window.claude.use){
+        window.claude.use('downloads').then(function(downloads){
+          if (!downloads){ fallbackBlobDownload(blob, filename); return; }
+          downloads.save({ filename: filename, data: blob }).catch(function(){});
+        }).catch(function(){ fallbackBlobDownload(blob, filename); });
+      } else {
+        fallbackBlobDownload(blob, filename);
+      }
+    });
+  }
+
+  // ---------- add-row button ----------
+  function wireAddButton(){
+    document.getElementById('addRowBtn').addEventListener('click', function(){
+      var presetOffice = officeFilter !== '전체' ? officeFilter : '';
+      var presetSchool = schoolFilter !== '전체' ? schoolFilter : '';
+      addRow({
+        office: presetOffice, school:presetSchool, subject:'', billVendor:'', unitPrice:0, headcount:0,
+        vendorName:'', vendorSupply:0, vendorHeadcount:0,
+        otherName:'', otherSupply:0, otherHeadcount:0,
+        note:''
+      });
+    });
+  }
+
+  // ---------- backend: db-backed ----------
+  function mountDbCollection(){
+    dbHandle.collection(TABLE).orderBy('order','asc').onSnapshot(function(snap){
+      snap.docChanges().forEach(function(change){
+        var id = change.doc.id;
+        if (change.type === 'added'){
+          if (!rowEls.rows[id]){
+            state.rows.push({id:id});
+            addRowToDom(id, change.doc.data() || {});
+          }
+        } else if (change.type === 'modified'){
+          setRowValues(id, change.doc.data() || {});
+        } else if (change.type === 'removed'){
+          if (rowEls.rows[id]){
+            state.rows = state.rows.filter(function(r){ return r.id !== id; });
+            removeRowFromDom(id);
+          }
+        }
+      });
+      maybeShowEmpty();
+    }, function(){ setSync('error','동기화 오류'); });
+  }
+
+  function mountDbProject(){
+    var ref = dbHandle.doc('project/info');
+    ref.get().then(function(snap){
+      if (!snap.exists) seedAll();
+    }).catch(function(){});
+    ref.onSnapshot(function(snap){
+      if (snap.exists){
+        state.project = snap.data() || {};
+        setProjectValues(state.project);
+      }
+    }, function(){ setSync('error','동기화 오류'); });
+  }
+
+  function seedAll(){
+    dbHandle.doc('project/info').set(Object.assign({seeded:true}, EXAMPLE.project)).catch(function(){});
+    EXAMPLE.rows.forEach(function(row){
+      dbHandle.collection(TABLE).add(row).catch(function(){});
+    });
+  }
+
+  // ---------- backend: local fallback (standalone / GitHub-hosted copy) ----------
+  function mountLocal(){
+    var banner = document.getElementById('offlineBanner');
+    banner.textContent = '💾 이 사본은 이 브라우저에만 저장됩니다 (localStorage). 다른 기기·브라우저와는 공유되지 않아요.';
+    banner.classList.add('show');
+    setSync('ok','브라우저 저장 모드');
+
+    var saved = loadLocalStorage();
+    if (saved && saved.rows.length){
+      state.project = saved.project || {};
+      local.project = saved.project || {};
+      setProjectValues(state.project);
+      saved.rows.forEach(function(row){
+        local.rows.push(row);
+        state.rows.push({id: row.id});
+        addRowToDom(row.id, row);
+      });
+    } else {
+      state.project = Object.assign({}, EXAMPLE.project);
+      setProjectValues(state.project);
+      local.project = Object.assign({}, EXAMPLE.project);
+      EXAMPLE.rows.forEach(function(row){
+        var id = uid();
+        var withId = Object.assign({id:id}, row);
+        local.rows.push(withId);
+        state.rows.push({id:id});
+        addRowToDom(id, withId);
+      });
+      saveLocalStorage();
+    }
+    maybeShowEmpty();
+    recomputeTotalsAndKpis();
+  }
+
+  // ---------- boot ----------
+  function boot(){
+    wireProjectCard();
+    wireAddButton();
+    wireExports();
+    wireXlsxExport();
+    wireFilters();
+    maybeShowEmpty();
+
+    if (window.claude && window.claude.use){
+      window.claude.use('db').then(function(db){
+        if (!db){ mountLocal(); return; }
+        dbHandle = db;
+        setSync('ok','저장됨');
+        mountDbProject();
+        mountDbCollection();
+      }).catch(function(){ mountLocal(); });
+    } else {
+      mountLocal();
+    }
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+})();
+</script>
